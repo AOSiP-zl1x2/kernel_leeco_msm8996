@@ -1,4 +1,4 @@
-/* Copyright (c) 2014-2018 The Linux Foundation. All rights reserved.
+/* Copyright (c) 2014-2017 The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -276,7 +276,7 @@ struct smbchg_chip {
 	struct work_struct		usb_set_online_work;
 	struct delayed_work		vfloat_adjust_work;
 	struct delayed_work		hvdcp_det_work;
-#ifdef CONFIG_PRODUCT_LE_X2
+#ifdef CONFIG_VENDOR_LEECO
 	struct delayed_work	    	letv_pd_set_vol_cur_work;
 	struct delayed_work		pd_charger_init_work;
 	struct delayed_work	    	first_detect_float_work;
@@ -499,7 +499,7 @@ module_param_named(
 	int, S_IRUSR | S_IWUSR
 );
 
-static int smbchg_default_hvdcp_icl_ma = 2000;
+static int smbchg_default_hvdcp_icl_ma = 1800;
 module_param_named(
 	default_hvdcp_icl_ma, smbchg_default_hvdcp_icl_ma,
 	int, S_IRUSR | S_IWUSR
@@ -511,7 +511,7 @@ module_param_named(
 	int, S_IRUSR | S_IWUSR
 );
 
-static int smbchg_default_dcp_icl_ma = 2000;
+static int smbchg_default_dcp_icl_ma = 1800;
 module_param_named(
 	default_dcp_icl_ma, smbchg_default_dcp_icl_ma,
 	int, S_IRUSR | S_IWUSR
@@ -568,7 +568,6 @@ static struct le_pd_type_info le_pd_type_val[] = {
 };
 #endif
 
-
 extern void letv_pd_set_adjust_charger_parameter(int voltage, int mA);
 #ifdef CONFIG_VENDOR_LEECO
 static int pd_init_flag = 0;
@@ -588,9 +587,6 @@ static int pd_init_voltage = 0;
 static bool hvdcp_aicl_rerun = false;
 static int smbchg_float_voltage_set(struct smbchg_chip *chip, int vfloat_mv);
 #endif
-
-
-struct smbchg_chip *pd_smbchg_chip;
 
 #define pr_smb(reason, fmt, ...)				\
 	do {							\
@@ -1335,7 +1331,7 @@ static int get_prop_batt_voltage_now(struct smbchg_chip *chip)
 	return uv;
 }
 
-#ifdef CONFIG_PRODUCT_LE_X2
+#ifdef CONFIG_VENDOR_LEECO
 int get_charger_charging_current(void)
 {
 	int cur;
@@ -1680,7 +1676,7 @@ static const int aicl_rerun_period_schg_lite[] = {
 	360,
 };
 
-#ifdef CONFIG_PRODUCT_LE_X2
+#ifdef CONFIG_VENDOR_LEECO
 static const int Vol_raw[] = {
 	3000,
 	3200,
@@ -5389,8 +5385,7 @@ static int smbchg_set_optimal_charging_mode(struct smbchg_chip *chip, int type)
 static int smbchg_change_usb_supply_type(struct smbchg_chip *chip,
 						enum power_supply_type type)
 {
-	int rc, current_limit_ma = DEFAULT_SDP_MA;
-	union power_supply_propval propval;
+	int rc, current_limit_ma;
 
 	/*
 	 * if the type is not unknown, set the type before changing ICL vote
@@ -5439,12 +5434,8 @@ static int smbchg_change_usb_supply_type(struct smbchg_chip *chip,
 		goto out;
 	}
 
-	if (!chip->skip_usb_notification) {
-		propval.intval = type;
-		chip->usb_psy->set_property(chip->usb_psy,
-				POWER_SUPPLY_PROP_REAL_TYPE,
-				&propval);
-	}
+	if (!chip->skip_usb_notification)
+		power_supply_set_supply_type(chip->usb_psy, type);
 
 	/*
 	 * otherwise if it is unknown, remove vote
@@ -6849,7 +6840,7 @@ static void smbchg_external_power_changed(struct power_supply *psy)
 		current_limit = prop.intval / 1000;
 
 	rc = chip->usb_psy->get_property(chip->usb_psy,
-				POWER_SUPPLY_PROP_REAL_TYPE, &prop);
+				POWER_SUPPLY_PROP_TYPE, &prop);
 
 	read_usb_type(chip, &usb_type_name, &usb_supply_type);
 
@@ -9706,7 +9697,7 @@ out:
 }
 #endif
 
-#ifdef CONFIG_PRODUCT_LE_X2
+#ifdef CONFIG_VENDOR_LEECO
 /*
   *This function called by pd for notice charger voltage and mA
   */
